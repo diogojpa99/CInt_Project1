@@ -101,7 +101,6 @@ if missing_data_flag == 1:
 ###### Outlier Detection #######
 
 outliers = [-1] #We will not count the first position
-stdev = 0
 
 def outlier_detector_stdev(feature, stdev, outliers): 
    
