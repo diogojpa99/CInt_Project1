@@ -18,12 +18,11 @@ missing_data = [(-1,'Feature')] #We will not count the first position
 outliers =  [(-1,'Feature')] 
 
 
-
 ''' Functions '''
 
 # missing_df_detector():
-# Returns an array with a vector og the shape:
-# (missing_df_index, Feature)
+# Returns an array with a vector of the shape:
+# (missing_data_index, Feature)
 def missing_data_detector(data_column, missing_data,feature): 
     
     i = 0
@@ -36,8 +35,8 @@ def missing_data_detector(data_column, missing_data,feature):
     return
 
 
-# Plot - Observe the df 
-def plot_df(df):
+# Plot - Observe the data
+def plot_data(df):
     
     plt.ion()
     fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -94,10 +93,10 @@ print('-----------------------------------------------------------')
 print("Missing data Index", missing_data)
 print('-----------------------------------------------------------')
 
-###### Filling Missing df ######
+###### Filling Missing data ######
 
 print('-----------------------------------------------------------')
-print('Select the mode you want for filling missing df:')
+print('Select the mode you want for filling missing data:')
 print('-----------------------------------------------------------')
 print('1. Interpolation of the previous and the next value')
 print('-----------------------------------------------------------')
@@ -141,11 +140,20 @@ print('-----------------------------------------------------------')
 print('Outliers',outliers)
 print('-----------------------------------------------------------')
 
-#plot_df(df)
+
+###### Removing Outliers ######
+
+#plot_data(df)
 
 if interpolation_flag == 1:  
     for o in outliers:
         df.loc[o[0],o[1]] = (df.loc[o[0]-1,o[1]] + df.loc[o[0]+1,o[1]])/2
         
-#plot_df(df)
-plot_correlation(df)
+#plot_data(df)
+#plot_correlation(df)
+
+
+###### Dealing with noise - Moving Average #######
+
+df_clean = df.rolling(50, min_periods= 1).mean()
+plot_data(df_clean)
