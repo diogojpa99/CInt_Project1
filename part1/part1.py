@@ -157,7 +157,7 @@ def Balance_data(x_train, y_train):
 
 #Feature Selection
 
-#Hyperparam tunning
+# Model Hyper-parameter tunning
 
 """*********************************  main() ************************************"""
 
@@ -192,8 +192,8 @@ df = df.drop(['Date', 'Time'], axis=1)
 
 """************************** Removing Test Set *********************************"""
 
-x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-1)].values, df.iloc[:,(len(df.columns)-1)].values, 
-                                                    test_size=0.1,shuffle=True)
+x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-1)].values, 
+                                                    df.iloc[:,(len(df.columns)-1)].values,test_size=0.1,shuffle=True)
 
 """*********** [Training data] Dealing with noise - Moving Average ***************"""
 
@@ -216,5 +216,9 @@ plt.show()
 
 """************************* Feature Selection ******************************"""
 
-
 """************************* Model Fine-Tunning ******************************"""
+
+"""**************************** Model Training ***********************************"""
+
+"""**************************** Model Predicting ***********************************"""
+
