@@ -81,9 +81,7 @@ def plot_information(df):
     print("Please input the idex of the feature that you want:")
     feature = int(input())
     
-    sns.set_theme(style="darkgrid")
-    sns.displot(df, x="Persons", col=df[df.columns[feature]],
-                    binwidth=3, height=3, facet_kws=dict(margin_titles=True))
+    sns.relplot(data = df, x = "S1Temp", y="S3Temp", col="Persons",hue="Persons", palette=["b", "p"])
     plt.show()
     return
 
@@ -185,6 +183,10 @@ print('Outliers',outliers)
 """********************* Removing Outliers **********************"""
 
 df = Filling_data(df, outliers)
+
+"""*********************  Vizualize Data  *************************"""
+
+plot_information(df)
 
 """********************* Droping 'DATA' and 'Time' Columns **********************"""
 
