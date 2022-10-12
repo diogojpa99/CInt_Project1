@@ -155,19 +155,19 @@ def Balance_data(x_train, y_train):
 #Everything changes if it is binary + The number of features are not the same
 def model(X_train, Y_train, sm ):
     
-    alpha = 0.001
+    alpha = 0.0001
     alphas = [alpha]
     learn_rate = 0.01
     l_rates =[learn_rate]
     
-    for i in range(10):
-        alpha = alpha/0.80
-        learn_rate = learn_rate/0.80
+    for i in range(2):
+        alpha = alpha/0.1
+        learn_rate = learn_rate/0.35
         alphas.append(alpha)
         l_rates.append(learn_rate)
         
-""" print('alphas',alphas)
-    print()
+    """print()        
+    print('alphas',alphas)
     print('l_rates',l_rates)"""
     
     if sm == True:
@@ -180,15 +180,14 @@ def model(X_train, Y_train, sm ):
         
     stratified_kfold = StratifiedKFold(n_splits=5, shuffle=True)
          
-    param_grid = {'MLP__hidden_layer_sizes':[(10,10), (12,12), (14,14),(16,12)], 
+    param_grid = {'MLP__hidden_layer_sizes':[(12,), (12,12), (10,10),(14,)], 
                   'MLP__activation':['logistic', 'tanh', 'relu'], 
                   'MLP__solver':['sgd', 'adam'],
                   'MLP__alpha':alphas, 
-                  'MLP__batch_size':[32,64],
                   'MLP__learning_rate':['constant','adaptive'],
-                  'MLP__max_iter':[400]
+                  'MLP__max_iter':[600],
                   'MLP__learning_rate_init':l_rates,
-                  'MLP__n_iter_no_change':[10,18,27,32]}
+                  'MLP__n_iter_no_change':[10,18,27]}
     
     scoring = {'accuracy':met.make_scorer(met.accuracy_score)}
     grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid, scoring=scoring, refit="accuracy",
