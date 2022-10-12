@@ -149,6 +149,22 @@ def Balance_data(x_train, y_train):
 
 #Feature Selection
 
+#Print scores
+def Print_Scores_Multiclass(Y_pred,Y_test):
+    
+    print('Multiclass - Accuracy:', accuracy_score(Y_pred,Y_test))
+    print('Multiclass - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
+    
+    print('Multiclass - micro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
+    print('Multiclass - micro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
+    print('Multiclass - micro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
+    
+    print('Multiclass - macro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    print('Multiclass - macro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    print('Multiclass - macro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    
+    return
+
 #Model Hyper-parameter tunning
 #Without feature selection
 #Multiclass
@@ -184,14 +200,13 @@ def model(X_train, Y_train, sm ):
                   'MLP__activation':['logistic', 'tanh', 'relu'], 
                   'MLP__solver':['sgd', 'adam'],
                   'MLP__alpha':alphas, 
-                  'MLP__learning_rate':['constant','adaptive'],
-                  'MLP__max_iter':[600],
-                  'MLP__learning_rate_init':l_rates,
-                  'MLP__n_iter_no_change':[10,18,27]}
+                  'MLP__learning_rate':['constant'],
+                  'MLP__max_iter':[1000],
+                  'MLP__learning_rate_init':l_rates}
     
     scoring = {'accuracy':met.make_scorer(met.accuracy_score)}
     grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid, scoring=scoring, refit="accuracy",
-                               cv=stratified_kfold, n_jobs=-1)
+                               cv=stratified_kfold)
     
     grid_search.fit(X_train, Y_train)
     print(grid_search.best_params_)
@@ -199,6 +214,7 @@ def model(X_train, Y_train, sm ):
 
     return
 
+#Simple NLP use for testing
 def simple_multiclass_model(X_train, Y_train, X_test, Y_test, sm):
     
     if sm == True:
@@ -211,16 +227,25 @@ def simple_multiclass_model(X_train, Y_train, X_test, Y_test, sm):
                         max_iter = 400, learning_rate_init = 0.03, n_iter_no_change = 18).fit(X_train,Y_train)
     
     Y_pred = mlp.predict(X_test)
-    print('Multiclass - Accuracy:', accuracy_score(Y_pred,Y_test))
-    print('Multiclass - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
+    Print_Scores_Multiclass(Y_pred,Y_test)
     
-    print('Multiclass - micro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    print('Multiclass - micro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    print('Multiclass - micro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
+    return
+
+# Best multiclass model if number of features = 9 
+# According to model()
+def best_multiclass_model(X_train, Y_train, X_test, Y_test, sm):
     
-    print('Multiclass - macro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
-    print('Multiclass - macro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
-    print('Multiclass - macro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    if sm == True:
+        X_train,Y_train = Balance_data(X_train, Y_train)
+    
+    X_train = Normalize_data(X_train, X_train)
+    
+    mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
+                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
+                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
+    
+    Y_pred = mlp.predict(X_test)
+    Print_Scores_Multiclass(Y_pred,Y_test)
     
     return
 
@@ -285,12 +310,15 @@ x_test = Normalize_data(x_test, x_train)
 
 """************************* Model Fine-Tunning ******************************"""
 
-#Todo Grid_Seacrh CV with SMOTE
-model(x_train, y_train, True)
+#To do Grid_Seacrh CV with SMOTE
+#model(x_train, y_train, True)
 
 """**************************** Model Training ***********************************"""
 
 """**************************** Model Predicting ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
+print("--------- Simple_multiclass_model ----------")
 simple_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
+print("--------- best_multiclass_model ----------")
+best_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
