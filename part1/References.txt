@@ -1,0 +1,2 @@
+SMOTE with Grid-Search: https://towardsdatascience.com/the-right-way-of-using-smote-with-cross-validation-92a8d09d00c7
+Recall & Precision: https://machinelearningmastery.com/precision-recall-and-f-measure-for-imbalanced-classif
