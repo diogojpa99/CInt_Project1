@@ -11,6 +11,8 @@ from sklearn.neural_network import MLPClassifier
 import sklearn.metrics as met
 from sklearn.metrics import precision_score, recall_score,f1_score, balanced_accuracy_score, accuracy_score
 from scipy.stats import pearsonr
+from sklearn.metrics import plot_confusion_matrix
+from sklearn.metrics import classification_report
 
 
 
@@ -19,12 +21,13 @@ from scipy.stats import pearsonr
 df = pd.read_csv('Proj1_Dataset.csv') 
 print('Features: ', df.keys())
 
-sns.set_theme(style="darkgrid")
+#sns.set_theme(style="darkgrid")
 
 n_features = len(df.columns) ## Number of features
 missing_data = [(-1,'Feature')] #We will not count the first position
 outliers =  [(-1,'Feature')] 
 
+sm = True #SMOTE
 
 """*********************************  Functions() ************************************"""
 
@@ -224,12 +227,7 @@ def model(X_train, Y_train, sm ):
     return
 
 #Simple NLP use for testing
-def simple_multiclass_model(X_train, Y_train, X_test, Y_test, sm):
-    
-    if sm == True:
-        X_train,Y_train = Balance_data(X_train, Y_train)
-    
-    X_train = Normalize_data(X_train, X_train)
+def simple_multiclass_model(X_train, Y_train, X_test, Y_test):
     
     mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='logistic',
                         solver = 'sgd', alpha = 0.05, batch_size=32, learning_rate='adaptive', 
@@ -242,19 +240,35 @@ def simple_multiclass_model(X_train, Y_train, X_test, Y_test, sm):
 
 # Best multiclass model if number of features = 9 
 # According to model()
-def best_multiclass_model(X_train, Y_train, X_test, Y_test, sm):
-    
-    if sm == True:
-        X_train,Y_train = Balance_data(X_train, Y_train)
-    
-    X_train = Normalize_data(X_train, X_train)
+def best_multiclass_model(X_train, Y_train, X_test, Y_test):
     
     mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
                         solver = 'adam', alpha = 0.0001, learning_rate='constant', 
                         max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
     
     Y_pred = mlp.predict(X_test)
+    
     Print_Scores_Multiclass(Y_pred,Y_test)
+    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
+    
+    return
+
+
+#Confusion Matrix
+def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
+    
+    plt.plot(mlp.loss_curve_)
+    plt.title("Loss Curve", fontsize=14)
+    plt.xlabel('Iterations')
+    plt.ylabel('Cost')
+    plt.show()
+    plt.close()
+    
+    fig = plot_confusion_matrix(mlp, test_x, test_y, display_labels=mlp.classes_)
+    fig.figure_.suptitle("Confusion Matrix")
+    plt.show()
+    
+    print(classification_report(test_y, pred_y))
     
     return
 
@@ -308,29 +322,29 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
 
 # train_set = Clean_Noise(train_set)
 
-"""********************* Normalize the Training Set *************************"""
-
-#x_train = Normalize_data(x_train, x_train)
-
-"""********************* Normalize the Test Set *************************"""
-
-x_test = Normalize_data(x_test, x_train)
-
-"""********************* Balance the Training Set ***************************"""
-
-#x_train,y_train = Balance_data(x_train, y_train)
-
 """************************* Model Fine-Tunning ******************************"""
 
 #To do Grid_Seacrh CV with SMOTE
-model(x_train, y_train, True)
+#model(x_train, y_train, True)
+
+"""********************* Normalize the Training Set *************************"""
+
+x_train_norm = Normalize_data(x_train, x_train)
+
+"""********************* Normalize the Test Set *************************"""
+
+x_test_norm = Normalize_data(x_test, x_train)
+
+"""********************* Balance the Training Set ***************************"""
+if sm == True:
+    x_train_norm,y_train = Balance_data(x_train_norm, y_train)
 
 """**************************** Model Training ***********************************"""
 
 """**************************** Model Predicting ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
-"""print("--------- Simple_multiclass_model ----------")
-simple_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
+#print("--------- Simple_multiclass_model ----------")
+#simple_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- best_multiclass_model ----------")
-best_multiclass_model(x_train, y_train, x_test, y_test, sm = True)"""
+best_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)

@@ -25,6 +25,7 @@ n_features = len(df.columns) ## Number of features
 missing_data = [(-1,'Feature')] #We will not count the first position
 outliers =  [(-1,'Feature')] 
 
+sm = True #SMOTE
 
 """*********************************  Functions() ************************************"""
 
@@ -166,7 +167,7 @@ def Feature_Selection(df):
     for s in selected_features:
         df.pop(s)
         
-    print('Data after feature selection:', df.columns)
+    #print('Data after feature selection:', df.columns)
                 
     return df
 
@@ -176,20 +177,20 @@ def Print_Scores_binary(Y_pred,Y_test):
     print('binary - Accuracy:', accuracy_score(Y_pred,Y_test))
     print('binary - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
     
-    print('binary - micro Precision:', precision_score(Y_pred,Y_test, average='binary'))
-    print('binary - micro Recall:', recall_score(Y_pred,Y_test, average='binary'))
-    print('binary - micro f1-score:', f1_score(Y_pred,Y_test, average='binary'))
+    print('binary - Precision:', precision_score(Y_pred,Y_test, average='binary'))
+    print('binary - Recall:', recall_score(Y_pred,Y_test, average='binary'))
+    print('binary - f1-score:', f1_score(Y_pred,Y_test, average='binary'))
     
     return
 
 #Model Hyper-parameter tunning
 #Without feature selection
-#binary
+#Multiclass
 #Everything changes if it is binary + The number of features are not the same
 def model(X_train, Y_train, sm ):
 
-    alphas = [0.00005,  0.0001, 0.001]
-    l_rates =[0.01, 0.015, 0.02]
+    alphas = [0.00005,  0.0001, 0.00015]
+    l_rates =[0.01, 0.01276471, 0.0194999]
               
     if sm == True:
         pipeline = imbpipeline(steps = [['smote', SMOTE(random_state=11)],
@@ -201,7 +202,7 @@ def model(X_train, Y_train, sm ):
         
     stratified_kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=11)
          
-    param_grid = {'MLP__hidden_layer_sizes':[(10,10),(12,),(10)], 
+    param_grid = {'MLP__hidden_layer_sizes':[(9,),(12,),(10)], 
                   'MLP__activation':['tanh','relu'], 
                   'MLP__solver':['adam'],
                   'MLP__alpha':alphas, 
@@ -220,45 +221,29 @@ def model(X_train, Y_train, sm ):
     return
 
 #Simple NLP use for testing
-def simple_binary_model(X_Train, Y_Train, X_Test, Y_Test, sm):
+def simple_binary_model(X_train, Y_train, X_test, Y_test):
     
-    if sm == True:
-        X_Train,Y_Train = Balance_data(X_Train, Y_Train)
+    mlp = MLPClassifier(hidden_layer_sizes=(9,), activation='tanh',
+                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
+                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
     
-    X_train_norm = Normalize_data(X_Train, X_Train)
-    X_test_norm = Normalize_data(X_Test, X_Train)
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='logistic',
-                        solver = 'sgd', alpha = 0.05, batch_size=32, learning_rate='adaptive', 
-                        max_iter = 400, learning_rate_init = 0.03, n_iter_no_change = 18).fit(X_train_norm,Y_train)
-    
-    Y_pred = mlp.predict(X_test_norm)
-    Print_Scores_binary(Y_pred,Y_Test)
+    Y_pred = mlp.predict(X_test)
+    Print_Scores_binary(Y_pred,Y_test)
     
     return
 
-# Best binary model if number of features = 9 
+# Best multiclass model if number of features = 9 
 # According to model()
-def best_binary_model(X_Train, Y_Train, X_Test, Y_Test, sm):
+def best_binary_model(X_train, Y_train, X_test, Y_test):
     
-    if sm == True:
-        X_Train,Y_Train = Balance_data(X_Train, Y_Train)
+    mlp = MLPClassifier(hidden_layer_sizes=(12,), activation='tanh',
+                        solver = 'adam', alpha = 0.00005, learning_rate='constant', 
+                        max_iter = 400, learning_rate_init = 0.015).fit(X_train,Y_train)
     
-    X_train_norm = Normalize_data(X_Train, X_Train)
-    X_test_norm = Normalize_data(X_Test, X_Train)
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(10,10), activation='tanh',
-                        solver = 'adam', alpha = 5e-05, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.01)
-    
-    mlp.out_activation_="sigmoid"
-    mlp.fit(X_train_norm,Y_Train)
-    
-    Y_pred = mlp.predict(X_test_norm)
-    Print_Scores_binary(Y_pred,Y_Test)
+    Y_pred = mlp.predict(X_test)
+    Print_Scores_binary(Y_pred,Y_test)
     
     return
-
 
 """*********************************  main() ************************************"""
 
@@ -295,13 +280,13 @@ df = Filling_data(df, outliers)
 
 df = df.drop(['Date', 'Time'], axis=1)
 
-"""************************* Feature Selection ******************************"""
-
-df = Feature_Selection(df)
-
 """************************* Transforming to Binary Variables ******************************"""
 
 df['Persons'].replace({1:0, 2:0 ,3:1}, inplace=True)
+
+"""************************* Feature Selection ******************************"""
+
+df = Feature_Selection(df)
 
 """************************** Removing Test Set *********************************"""
 
@@ -313,23 +298,22 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
 
 # train_set = Clean_Noise(train_set)
 
-"""********************* Normalize the Training Set *************************"""
-
-#x_train = Normalize_data(x_train, x_train)
-# Going to normalize in the models
-
-"""********************* Normalize the Test Set *************************"""
-
-#x_test = Normalize_data(x_test, x_train)
-
-"""********************* Balance the Training Set ***************************"""
-
-#x_train,y_train = Balance_data(x_train, y_train)
-
 """************************* Model Fine-Tunning ******************************"""
 
 #To do Grid_Seacrh CV with SMOTE
 model(x_train, y_train, True)
+
+"""********************* Normalize the Training Set *************************"""
+
+x_train_norm = Normalize_data(x_train, x_train)
+
+"""********************* Normalize the Test Set *************************"""
+
+x_test_norm = Normalize_data(x_test, x_train)
+
+"""********************* Balance the Training Set ***************************"""
+if sm == True:
+    x_train_norm,y_train = Balance_data(x_train_norm, y_train)
 
 """**************************** Model Training ***********************************"""
 
@@ -337,6 +321,6 @@ model(x_train, y_train, True)
 
 #Simple model to test Feature Selection, Balance techniques, etc.
 """print("--------- Simple_binary_model ----------")
-simple_binary_model(x_train, y_train, x_test, y_test, sm = True)
+simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- best_binary_model ----------")
-best_binary_model(x_train, y_train, x_test, y_test, sm = False)"""
+best_binary_model(x_train_norm, y_train, x_test_norm, y_test)"""
