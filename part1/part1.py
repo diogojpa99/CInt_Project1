@@ -170,37 +170,29 @@ def Print_Scores_Multiclass(Y_pred,Y_test):
 #Multiclass
 #Everything changes if it is binary + The number of features are not the same
 def model(X_train, Y_train, sm ):
-    
-    alpha = 0.0001
-    alphas = [alpha]
-    learn_rate = 0.01
-    l_rates =[learn_rate]
-    
-    for i in range(2):
-        alpha = alpha/0.1
-        learn_rate = learn_rate/0.35
-        alphas.append(alpha)
-        l_rates.append(learn_rate)
-        
-    """print()        
+
+    alphas = [8.888888888888889e-05,  0.0002, 0.0032]
+    l_rates =[0.013841, 0.02176471,0.0194999]
+          
+    print()        
     print('alphas',alphas)
-    print('l_rates',l_rates)"""
+    print('l_rates',l_rates)
     
     if sm == True:
-        pipeline = imbpipeline(steps = [['smote', SMOTE()],
+        pipeline = imbpipeline(steps = [['smote', SMOTE(random_state=11)],
                                         ['norm', MinMaxScaler()],
                                         ['MLP', MLPClassifier()]])
     else:
         pipeline = Pipeline(steps = [['norm', MinMaxScaler()],
                                      ['MLP', MLPClassifier()]])
         
-    stratified_kfold = StratifiedKFold(n_splits=5, shuffle=True)
+    stratified_kfold = StratifiedKFold(n_splits=8, shuffle=True, random_state=11)
          
-    param_grid = {'MLP__hidden_layer_sizes':[(12,), (12,12), (10,10),(14,)], 
-                  'MLP__activation':['logistic', 'tanh', 'relu'], 
-                  'MLP__solver':['sgd', 'adam'],
+    param_grid = {'MLP__hidden_layer_sizes':[(12,12)], 
+                  'MLP__activation':['tanh'], 
+                  'MLP__solver':['adam'],
                   'MLP__alpha':alphas, 
-                  'MLP__learning_rate':['constant'],
+                  'MLP__learning_rate':['adaptive'],
                   'MLP__max_iter':[1000],
                   'MLP__learning_rate_init':l_rates}
     
@@ -311,7 +303,7 @@ x_test = Normalize_data(x_test, x_train)
 """************************* Model Fine-Tunning ******************************"""
 
 #To do Grid_Seacrh CV with SMOTE
-#model(x_train, y_train, True)
+model(x_train, y_train, True)
 
 """**************************** Model Training ***********************************"""
 
@@ -319,6 +311,6 @@ x_test = Normalize_data(x_test, x_train)
 
 #Simple model to test Feature Selection, Balance techniques, etc.
 print("--------- Simple_multiclass_model ----------")
-simple_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
+#simple_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
 print("--------- best_multiclass_model ----------")
-best_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
+#best_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
