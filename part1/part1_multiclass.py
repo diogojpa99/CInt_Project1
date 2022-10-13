@@ -10,6 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.neural_network import MLPClassifier
 import sklearn.metrics as met
 from sklearn.metrics import precision_score, recall_score,f1_score, balanced_accuracy_score, accuracy_score
+from scipy.stats import pearsonr
 
 
 
@@ -148,6 +149,26 @@ def Balance_data(x_train, y_train):
     return sm.fit_resample(x_train,y_train)
 
 #Feature Selection
+# If two features have a pearson correlation coefficient bigger than 85 remove one of them
+def Feature_Selection(df):
+    
+    selected_features = ['Features']
+    
+    for f in df:
+        for d in df:
+            corr, _ = pearsonr(df[f],df[d])
+            if ( (corr > 0.85) and (d != f) and (d != df.columns[0])): #Do not remove first feature
+                if d not in selected_features:
+                    selected_features.append(d)
+                
+    selected_features.pop(0)
+    
+    for s in selected_features:
+        df.pop(s)
+        
+    #print('Data after feature selection:', df.columns)
+                
+    return df
 
 #Print scores
 def Print_Scores_Multiclass(Y_pred,Y_test):
@@ -171,13 +192,9 @@ def Print_Scores_Multiclass(Y_pred,Y_test):
 #Everything changes if it is binary + The number of features are not the same
 def model(X_train, Y_train, sm ):
 
-    alphas = [8.888888888888889e-05,  0.0002, 0.0032]
-    l_rates =[0.013841, 0.02176471,0.0194999]
-          
-    print()        
-    print('alphas',alphas)
-    print('l_rates',l_rates)
-    
+    alphas = [0.00005,  0.0001, 0.00015]
+    l_rates =[0.01, 0.01276471, 0.0194999]
+              
     if sm == True:
         pipeline = imbpipeline(steps = [['smote', SMOTE(random_state=11)],
                                         ['norm', MinMaxScaler()],
@@ -186,14 +203,14 @@ def model(X_train, Y_train, sm ):
         pipeline = Pipeline(steps = [['norm', MinMaxScaler()],
                                      ['MLP', MLPClassifier()]])
         
-    stratified_kfold = StratifiedKFold(n_splits=8, shuffle=True, random_state=11)
+    stratified_kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=11)
          
-    param_grid = {'MLP__hidden_layer_sizes':[(12,12)], 
-                  'MLP__activation':['tanh'], 
+    param_grid = {'MLP__hidden_layer_sizes':[(12,12),(14,)], 
+                  'MLP__activation':['tanh','relu'], 
                   'MLP__solver':['adam'],
                   'MLP__alpha':alphas, 
-                  'MLP__learning_rate':['adaptive'],
-                  'MLP__max_iter':[1000],
+                  'MLP__learning_rate':['constant'],
+                  'MLP__max_iter':[500],
                   'MLP__learning_rate_init':l_rates}
     
     scoring = {'accuracy':met.make_scorer(met.accuracy_score)}
@@ -276,6 +293,11 @@ df = Filling_data(df, outliers)
 
 df = df.drop(['Date', 'Time'], axis=1)
 
+"""************************* Feature Selection ******************************"""
+
+#plot_correlation(df)
+df = Feature_Selection(df)
+
 """************************** Removing Test Set *********************************"""
 
 x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-1)].values, 
@@ -298,8 +320,6 @@ x_test = Normalize_data(x_test, x_train)
 
 #x_train,y_train = Balance_data(x_train, y_train)
 
-"""************************* Feature Selection ******************************"""
-
 """************************* Model Fine-Tunning ******************************"""
 
 #To do Grid_Seacrh CV with SMOTE
@@ -310,7 +330,7 @@ model(x_train, y_train, True)
 """**************************** Model Predicting ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
-print("--------- Simple_multiclass_model ----------")
-#simple_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
+"""print("--------- Simple_multiclass_model ----------")
+simple_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
 print("--------- best_multiclass_model ----------")
-#best_multiclass_model(x_train, y_train, x_test, y_test, sm = True)
+best_multiclass_model(x_train, y_train, x_test, y_test, sm = True)"""
