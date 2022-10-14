@@ -11,6 +11,8 @@ from sklearn.neural_network import MLPClassifier
 import sklearn.metrics as met
 from sklearn.metrics import precision_score, recall_score,f1_score, balanced_accuracy_score, accuracy_score
 from scipy.stats import pearsonr
+from sklearn.metrics import plot_confusion_matrix
+from sklearn.metrics import classification_report
 
 
 
@@ -94,7 +96,7 @@ def missing_data_detector(data_column, missing_data,feature):
     return
 
 # Z-score for outlier detection - Change Name
-def z_score(df_column,feature,outliers): 
+def outlier_detector(df_column,feature,outliers): 
     
     df_column = np.array(df_column)
     stdev = df_column.std()
@@ -187,10 +189,10 @@ def Print_Scores_binary(Y_pred,Y_test):
 #Without feature selection
 #Multiclass
 #Everything changes if it is binary + The number of features are not the same
-def model(X_train, Y_train, sm ):
+def model_FineTuning(X_train, Y_train, sm ):
 
-    alphas = [0.00005,  0.0001, 0.00015]
-    l_rates =[0.01, 0.01276471, 0.0194999]
+    alphas = [0.0005,  0.0001, 0.000175]
+    l_rates =[0.01, 0.0175, 0.02]
               
     if sm == True:
         pipeline = imbpipeline(steps = [['smote', SMOTE(random_state=11)],
@@ -202,7 +204,7 @@ def model(X_train, Y_train, sm ):
         
     stratified_kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=11)
          
-    param_grid = {'MLP__hidden_layer_sizes':[(9,),(12,),(10)], 
+    param_grid = {'MLP__hidden_layer_sizes':[(12,),(10,)], 
                   'MLP__activation':['tanh','relu'], 
                   'MLP__solver':['adam'],
                   'MLP__alpha':alphas, 
@@ -210,8 +212,8 @@ def model(X_train, Y_train, sm ):
                   'MLP__max_iter':[500],
                   'MLP__learning_rate_init':l_rates}
     
-    scoring = {'accuracy':met.make_scorer(met.accuracy_score)}
-    grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid, scoring=scoring, refit="accuracy",
+    #scoring = {'accuracy':met.make_scorer(met.accuracy_score)}
+    grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid, scoring='roc_auc',
                                cv=stratified_kfold)
     
     grid_search.fit(X_train, Y_train)
@@ -237,11 +239,81 @@ def simple_binary_model(X_train, Y_train, X_test, Y_test):
 def best_binary_model(X_train, Y_train, X_test, Y_test):
     
     mlp = MLPClassifier(hidden_layer_sizes=(12,), activation='tanh',
-                        solver = 'adam', alpha = 0.00005, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.015).fit(X_train,Y_train)
+                        solver = 'adam', alpha = 0.0001, learning_rate='adaptive', 
+                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
     
     Y_pred = mlp.predict(X_test)
+    
+    Plot_LossCurve(mlp)
     Print_Scores_binary(Y_pred,Y_test)
+    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
+    
+    return
+
+#Other binary model
+def binary_model_3(X_train, Y_train, X_test, Y_test):
+    
+    mlp = MLPClassifier(hidden_layer_sizes=(10,10), activation='tanh',
+                        solver = 'adam', alpha = 0.00015, learning_rate='adaptive', 
+                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
+    
+    Y_pred = mlp.predict(X_test)
+    
+    Plot_LossCurve(mlp)
+    Print_Scores_binary(Y_pred,Y_test)
+    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
+    
+    return
+# binary model number 4
+def binary_model_4(X_train, Y_train, X_test, Y_test):
+    
+    mlp = MLPClassifier(hidden_layer_sizes=(12,), activation='tanh',
+                        solver = 'adam', alpha = 0.000175, learning_rate='adaptive', 
+                        max_iter = 400, learning_rate_init = 0.0175).fit(X_train,Y_train)
+    
+    Y_pred = mlp.predict(X_test)
+    
+    Plot_LossCurve(mlp)
+    Print_Scores_binary(Y_pred,Y_test)
+    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
+
+    return
+
+# binary model number 5
+def binary_model_5(X_train, Y_train, X_test, Y_test):
+    
+    mlp = MLPClassifier(hidden_layer_sizes=(12,), activation='tanh',
+                        solver = 'adam', alpha = 0.000175, learning_rate='adaptive', 
+                        max_iter = 400, learning_rate_init = 0.024).fit(X_train,Y_train)
+    
+    Y_pred = mlp.predict(X_test)
+    
+    Plot_LossCurve(mlp)
+    Print_Scores_binary(Y_pred,Y_test)
+    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
+
+    return
+
+#Plot Confusion Matrix
+def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
+    
+    fig = plot_confusion_matrix(mlp, test_x, test_y, display_labels=mlp.classes_)
+    fig.figure_.suptitle("Confusion Matrix")
+    plt.show()
+    
+    print(classification_report(test_y, pred_y))
+    
+    return
+
+#Plot Loss Curve
+def Plot_LossCurve(mlp):
+    
+    plt.plot(mlp.loss_curve_)
+    plt.title("Loss Curve", fontsize=14)
+    plt.xlabel('Iterations')
+    plt.ylabel('Cost')
+    plt.show()
+    plt.close()
     
     return
 
@@ -263,7 +335,7 @@ df = Filling_data(df, missing_data)
 """********************* Outlier Detection **********************"""
 
 for i in range (2,n_features):
-    z_score(df[df.columns[i]],df.columns[i],outliers)
+    outlier_detector(df[df.columns[i]],df.columns[i],outliers)
 
 outliers.pop(0)
 #print('Outliers',outliers)
@@ -296,12 +368,11 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
 
 """*********** [Training data] Dealing with noise - Moving Average ***************"""
 
-# train_set = Clean_Noise(train_set)
+#x_train = Clean_Noise(x_train)
 
 """************************* Model Fine-Tunning ******************************"""
 
-#To do Grid_Seacrh CV with SMOTE
-model(x_train, y_train, True)
+model_FineTuning(x_train, y_train, True) #To do Grid_Seacrh CV with SMOTE
 
 """********************* Normalize the Training Set *************************"""
 
@@ -320,7 +391,13 @@ if sm == True:
 """**************************** Model Predicting ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
-"""print("--------- Simple_binary_model ----------")
-simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)
+#print("--------- Simple_binary_model ----------")
+#simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- best_binary_model ----------")
-best_binary_model(x_train_norm, y_train, x_test_norm, y_test)"""
+best_binary_model(x_train_norm, y_train, x_test_norm, y_test)
+print("--------- binary_model_3 ----------")
+binary_model_3(x_train_norm, y_train, x_test_norm, y_test)
+print("--------- binary_model_4 ----------")
+binary_model_4(x_train_norm, y_train, x_test_norm, y_test)
+print("--------- binary_model_5 ----------")
+binary_model_5(x_train_norm, y_train, x_test_norm, y_test)

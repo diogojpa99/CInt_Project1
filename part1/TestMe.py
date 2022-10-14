@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,9 +21,16 @@ from sklearn.metrics import classification_report
 
 """*********************************  Initializations() ************************************"""
 
-df = pd.read_csv('Proj1_Dataset.csv') 
-print('Features: ', df.keys())
-
+if len(sys.argv) < 2:
+    print(" ----- Error: arguments should follow the following setup ----- ")
+    print("(python) TestMe.py xxx.csv")
+    exit(0)
+elif sys.argv[1][int(len(sys.argv[1])-4):int(len(sys.argv[1]))] != '.csv':
+        print(" ----- Error: arguments should follow the following setup ----- ")
+        print("(python) TestMe.py xxx.csv")
+else:
+    df = pd.read_csv(sys.argv[1])
+        
 #sns.set_theme(style="darkgrid")
 
 n_features = len(df.columns) ## Number of features
@@ -189,67 +199,15 @@ def Print_Scores_Multiclass(Y_pred,Y_test):
     
     return
 
-#Model Hyper-parameter tunning
-def model_FineTuning(X_train, Y_train, sm ):
-
-    alphas = [0.00005,  0.0001, 0.00015]
-    l_rates =[0.01, 0.01276471, 0.0194999]
-              
-    if sm == True:
-        pipeline = imbpipeline(steps = [['smote', SMOTE(random_state=11)],
-                                        ['norm', MinMaxScaler()],
-                                        ['MLP', MLPClassifier()]])
-    else:
-        pipeline = Pipeline(steps = [['norm', MinMaxScaler()],
-                                     ['MLP', MLPClassifier()]])
-        
-    stratified_kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=11)
-         
-    param_grid = {'MLP__hidden_layer_sizes':[(12,12),(14,)], 
-                  'MLP__activation':['tanh','relu'], 
-                  'MLP__solver':['adam'],
-                  'MLP__alpha':alphas, 
-                  'MLP__learning_rate':['constant'],
-                  'MLP__max_iter':[500],
-                  'MLP__learning_rate_init':l_rates}
-    
-    #scoring = {'accuracy':met.make_scorer(met.accuracy_score)}
-    grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid, scoring='roc_auc',
-                               cv=stratified_kfold)
-    
-    grid_search.fit(X_train, Y_train)
-    print(grid_search.best_params_)
-    print(grid_search.best_score_)
-
-    return
-
-#Simple NLP use for testing
-def simple_multiclass_model(X_train, Y_train, X_test, Y_test):
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='logistic',
-                        solver = 'sgd', alpha = 0.05, batch_size=32, learning_rate='adaptive', 
-                        max_iter = 400, learning_rate_init = 0.03, n_iter_no_change = 18).fit(X_train,Y_train)
-    
-    Y_pred = mlp.predict(X_test)
-    Print_Scores_Multiclass(Y_pred,Y_test)
-    
-    return
-
 # Best multiclass model if number of features = 9 
 # According to model()
-def best_multiclass_model(X_train, Y_train, X_test, Y_test):
+def multiclass_model():
     
     mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
                         solver = 'adam', alpha = 0.0001, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
+                        max_iter = 400, learning_rate_init = 0.01)
     
-    Y_pred = mlp.predict(X_test)
-    
-    Plot_LossCurve(mlp)
-    Print_Scores_Multiclass(Y_pred,Y_test)
-    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
-    
-    return
+    return mlp
 
 #Plotonfusion Matrix
 def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
@@ -282,8 +240,7 @@ for i in range (2,n_features):
     missing_data_detector(df.isnull()[df.columns[i]], missing_data, df.columns[i])
     
 missing_data.pop(0)
-print("Missing data Index", missing_data)
-
+#print("Missing data Index", missing_data)
 
 """********************* Filling Missing data **********************"""
 
@@ -295,7 +252,7 @@ for i in range (2,n_features):
     outlier_detector(df[df.columns[i]],df.columns[i],outliers)
 
 outliers.pop(0)
-print('Outliers',outliers)
+#print('Outliers',outliers)
 
 """********************* Removing Outliers **********************"""
 
@@ -313,19 +270,11 @@ df = df.drop(['Date', 'Time'], axis=1)
 
 df = Feature_Selection(df)
 
-"""************************** Removing Test Set *********************************"""
+"""************************** Tain-Test Split *********************************"""
 
-x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-1)].values, 
-                                                    df.iloc[:,(len(df.columns)-1)].values,
-                                                    test_size=0.1,shuffle=True)
-
-"""*********** [Training data] Dealing with noise - Moving Average ***************"""
-
-# train_set = Clean_Noise(train_set)
-
-"""************************* Model Fine-Tunning ******************************"""
-
-#model_FineTuning(x_train, y_train, True) #To do Grid_Seacrh CV with SMOTE
+data = df.to_numpy()
+y_real = data[:,-1]
+x_rea3 = data[:,0:-1]
 
 """********************* Normalize the Training Set *************************"""
 
@@ -338,11 +287,13 @@ x_test_norm = Normalize_data(x_test, x_train)
 """********************* Balance the Training Set ***************************"""
 if sm == True:
     x_train_norm,y_train = Balance_data(x_train_norm, y_train)
+    
+"""**************************** Model Traning ***********************************"""
 
-"""**************************** Models ***********************************"""
+print("------------- Multiclass Model Output ----------------")
+mlp_clf = multiclass_model()
 
-#Simple model to test Feature Selection, Balance techniques, etc.
-#print("--------- Simple_multiclass_model ----------")
-#simple_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)
-print("--------- best_multiclass_model ----------")
-best_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)
+"""**************************** Model ***********************************"""
+
+print("------------- Multiclass Model Output ----------------")
+mlp_clf = multiclass_model()
