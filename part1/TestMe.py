@@ -5,17 +5,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
 from imblearn.over_sampling import SMOTE 
 from sklearn.preprocessing import MinMaxScaler
-from imblearn.pipeline import Pipeline as imbpipeline
-from sklearn.pipeline import Pipeline
-from sklearn.neural_network import MLPClassifier
-import sklearn.metrics as met
 from sklearn.metrics import precision_score, recall_score,f1_score, balanced_accuracy_score, accuracy_score
 from scipy.stats import pearsonr
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import classification_report
+import pickle
 
 
 
@@ -199,16 +195,6 @@ def Print_Scores_Multiclass(Y_pred,Y_test):
     
     return
 
-# Best multiclass model if number of features = 9 
-# According to model()
-def multiclass_model():
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
-                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.01)
-    
-    return mlp
-
 #Plotonfusion Matrix
 def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
     
@@ -276,24 +262,15 @@ data = df.to_numpy()
 y_real = data[:,-1]
 x_rea3 = data[:,0:-1]
 
-"""********************* Normalize the Training Set *************************"""
-
-x_train_norm = Normalize_data(x_train, x_train)
-
 """********************* Normalize the Test Set *************************"""
 
 x_test_norm = Normalize_data(x_test, x_train)
-
-"""********************* Balance the Training Set ***************************"""
-if sm == True:
-    x_train_norm,y_train = Balance_data(x_train_norm, y_train)
     
-"""**************************** Model Traning ***********************************"""
+"""**************************** Upload Multiclass Model ***********************************"""
 
-print("------------- Multiclass Model Output ----------------")
-mlp_clf = multiclass_model()
+loaded_mlp = pickle.load(open('Best_Multiclass_Model.sav', 'rb'))
 
-"""**************************** Model ***********************************"""
+"""**************************** predict ***********************************"""
 
 print("------------- Multiclass Model Output ----------------")
 mlp_clf = multiclass_model()

@@ -225,8 +225,8 @@ def model_FineTuning(X_train, Y_train, sm ):
 #Simple NLP use for testing
 def simple_binary_model(X_train, Y_train, X_test, Y_test):
     
-    mlp = MLPClassifier(hidden_layer_sizes=(9,), activation='tanh',
-                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
+    mlp = MLPClassifier(hidden_layer_sizes=(10,), activation='logistic',
+                        solver = 'sgd', alpha = 0.0001, learning_rate='constant', 
                         max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
     
     Y_pred = mlp.predict(X_test)
@@ -372,7 +372,7 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
 
 """************************* Model Fine-Tunning ******************************"""
 
-model_FineTuning(x_train, y_train, True) #To do Grid_Seacrh CV with SMOTE
+#model_FineTuning(x_train, y_train, True) #To do Grid_Seacrh CV with SMOTE
 
 """********************* Normalize the Training Set *************************"""
 
@@ -391,13 +391,13 @@ if sm == True:
 """**************************** Model Predicting ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
-#print("--------- Simple_binary_model ----------")
-#simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)
+print("--------- Simple_binary_model ----------")
+simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- best_binary_model ----------")
 best_binary_model(x_train_norm, y_train, x_test_norm, y_test)
-print("--------- binary_model_3 ----------")
+"""print("--------- binary_model_3 ----------")
 binary_model_3(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- binary_model_4 ----------")
 binary_model_4(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- binary_model_5 ----------")
-binary_model_5(x_train_norm, y_train, x_test_norm, y_test)
+binary_model_5(x_train_norm, y_train, x_test_norm, y_test)"""

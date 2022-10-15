@@ -22,7 +22,7 @@ import pickle
 df = pd.read_csv('Proj1_Dataset.csv') 
 print('Features: ', df.keys())
 
-#sns.set_theme(style="darkgrid")
+sns.set_theme(style="darkgrid")
 
 n_features = len(df.columns) ## Number of features
 missing_data = [(-1,'Feature')] #We will not count the first position
@@ -289,6 +289,8 @@ def Plot_LossCurve(mlp):
     return
     
 """*********************************  main() ************************************"""
+
+plot_data(df)
 
 """********************* Missing data Detection **********************"""
 
