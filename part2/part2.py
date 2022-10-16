@@ -218,7 +218,6 @@ def MLP_binary_model(X_train, Y_train, X_test, Y_test):
 
     return
 
-
 #Plotonfusion Matrix
 def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
     
@@ -242,7 +241,7 @@ def Plot_LossCurve(mlp):
     
     return
     
-    
+#Tuning Fuzzy classifier    
 def Tune_fuzzy_classifier(x_train, y_train, nr_persons_ctrl):
     
     y_pred_train = np.array([])
@@ -264,7 +263,7 @@ def Tune_fuzzy_classifier(x_train, y_train, nr_persons_ctrl):
     
     return
     
-    
+#Fuzzy classifier    
 def Fuzzy_classifier(x_test, y_test, nr_persons_ctrl):
     
     y_pred = np.array([])
