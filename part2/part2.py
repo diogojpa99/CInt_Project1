@@ -14,7 +14,12 @@ from scipy.stats import pearsonr
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import classification_report
 import pickle
+import math
 
+
+
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
 
 
 """*********************************  Initializations() ************************************"""
@@ -22,7 +27,7 @@ import pickle
 df = pd.read_csv('Proj1_Dataset.csv') 
 print('Features: ', df.keys())
 
-sns.set_theme(style="darkgrid")
+#sns.set_theme(style="darkgrid")
 
 n_features = len(df.columns) ## Number of features
 missing_data = [(-1,'Feature')] #We will not count the first position
@@ -184,18 +189,14 @@ def Feature_Selection(df):
     return df
 
 #Print scores
-def Print_Scores_Multiclass(Y_pred,Y_test):
+def Print_Scores_binary(Y_pred,Y_test):
     
-    print('Multiclass - Accuracy:', accuracy_score(Y_pred,Y_test))
-    #print('Multiclass - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
+    print('binary - Accuracy:', accuracy_score(Y_pred,Y_test))
+    print('binary - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
     
-    """print('Multiclass - micro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    print('Multiclass - micro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    print('Multiclass - micro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))"""
-    
-    print('Multiclass - macro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
-    print('Multiclass - macro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
-    print('Multiclass - macro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    print('binary - Precision:', precision_score(Y_pred,Y_test, average='binary'))
+    print('binary - Recall:', recall_score(Y_pred,Y_test, average='binary'))
+    print('binary - f1-score:', f1_score(Y_pred,Y_test, average='binary'))
     
     return
 
@@ -231,18 +232,6 @@ def model_FineTuning(X_train, Y_train, sm ):
     print(grid_search.best_params_)
     print(grid_search.best_score_)
 
-    return
-
-#Simple NLP use for testing
-def simple_multiclass_model(X_train, Y_train, X_test, Y_test):
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(12,), activation='logistic',
-                        solver = 'sgd', alpha = 0.0001, learning_rate='constant', 
-                        max_iter = 1000, learning_rate_init = 0.05).fit(X_train,Y_train)
-    
-    Y_pred = mlp.predict(X_test)
-    Print_Scores_Multiclass(Y_pred,Y_test)
-    
     return
 
 # Best multiclass model if number of features = 9 
@@ -290,15 +279,13 @@ def Plot_LossCurve(mlp):
     
 """*********************************  main() ************************************"""
 
-#plot_data(df)
-
 """********************* Missing data Detection **********************"""
 
 for i in range (2,n_features):
     missing_data_detector(df.isnull()[df.columns[i]], missing_data, df.columns[i])
     
 missing_data.pop(0)
-print("Missing data Index", missing_data)
+#print("Missing data Index", missing_data)
 
 """********************* Filling Missing data **********************"""
 
@@ -310,38 +297,58 @@ for i in range (2,n_features):
     outlier_detector(df[df.columns[i]],df.columns[i],outliers)
 
 outliers.pop(0)
-print('Outliers',outliers)
+#print('Outliers',outliers)
 
 """********************* Removing Outliers **********************"""
 
 df = Filling_data(df, outliers)
 
-"""*********************  Vizualize Data  *************************"""
+df_fuzzy = Filling_data(df, outliers)
 
-#plot_data(df)
-#plot_correlation(df)
-"""plt.hist(df['Persons'])
-plt.title('Histogram of output Feature')
-plt.xlabel('Number of persons')
-plt.ylabel('Number of times in the lab')
-plt.show()"""
+"""**************************** Fuzzy - Define Variables ***********************************"""
 
-"""********************* Droping 'DATA' and 'Time' Columns **********************"""
+####### Time #######
 
-df = df.drop(['Date', 'Time'], axis=1)
+############################# URGENT ############################# 
 
-"""********************* Save Max and Min of each feature ************************"""
+####### CO2 #######
 
+df_fuzzy['CO2'] = np.append(np.diff(df_fuzzy['CO2']),0)
 
-"""************************* Feature Selection ******************************"""
+max_CO2 = max(df_fuzzy['CO2'])
+min_CO2 = min(df_fuzzy['CO2'])
 
-df = Feature_Selection(df)
+plt.plot(df_fuzzy['CO2'])
+plt.title('CO2 Variation')
+plt.show()
+    
+####### Light Avg #######
+
+df_fuzzy['S1Light'] = (df_fuzzy['S1Light']+df_fuzzy['S2Light']+df_fuzzy['S3Light'])/3
+
+max_light_avg = max(df_fuzzy['S1Light'])
+min_light_avg = min(df_fuzzy['S1Light'])
+
+plt.plot(df_fuzzy['S1Light'])
+plt.title('Average of the three light sensors')
+plt.show()
+
+####### Data ########
+
+df_fuzzy.rename({'CO2': 'CO2_dev'}, axis=1, inplace=True)
+df_fuzzy.rename({'S1Light': 'light_avg'}, axis=1, inplace=True)
+"""df_fuzzy = df_fuzzy.drop(['Date','S1Temp','S2Temp','S3Temp','S2Light','S3Light',
+                          'PIR1', 'PIR2'], axis=1)"""
+df_fuzzy = df_fuzzy.drop(['Date','Time', 'S1Temp','S2Temp','S3Temp','S2Light','S3Light',
+                          'PIR1', 'PIR2'], axis=1)
 
 """************************** Removing Test Set *********************************"""
 
-x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-1)].values, 
-                                                    df.iloc[:,(len(df.columns)-1)].values,
-                                                    test_size=0.1)
+x_train, x_test, y_train, y_test = train_test_split(df_fuzzy.iloc[:,:(len(df_fuzzy.columns)-1)].values, 
+                                                    df_fuzzy.iloc[:,(len(df_fuzzy.columns)-1)].values,
+                                                    test_size=0.1,shuffle=True)
+
+
 
 """*********** [Training data] Dealing with noise - Moving Average ***************"""
 
@@ -353,22 +360,131 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
 
 """********************* Normalize the Training Set *************************"""
 
-x_train_norm = Normalize_data(x_train, x_train)
+#x_train_norm = Normalize_data(x_train, x_train)
 
 """********************* Normalize the Test Set *************************"""
 
-x_test_norm = Normalize_data(x_test, x_train)
+#x_test_norm = Normalize_data(x_test, x_train)
 
 """********************* Balance the Training Set ***************************"""
 
-if sm == True:
-    x_train_norm,y_train = Balance_data(x_train_norm, y_train)
+#if sm == True:
+    #x_train_norm,y_train = Balance_data(x_train_norm, y_train)
+
+"""**************************** Fuzzy System Inputs ***********************************"""
+
+#time_in_day = ctrl.Antecedent(np.arange(0, 24+1, 1), 'Time') 
+mean_lights = ctrl.Antecedent(np.arange(min_light_avg, max_light_avg+1, 1), 'Lights_Avg')
+CO2_deriv = ctrl.Antecedent(np.arange(min_CO2, max_CO2+1, 1), 'CO2_Var')
+
+"""**************************** Fuzzy System Output ***********************************"""
+
+Persons = ctrl.Consequent(np.arange(0, 3+1, 1), 'Persons')
+
+"""*********************************** Fuzzifier ***************************************"""
 
 
-"""**************************** Models ***********************************"""
+###### Input ########
 
-#Simple model to test Feature Selection, Balance techniques, etc.
-print("--------- Simple_multiclass_model ----------")
-simple_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)
-"""print("--------- best_multiclass_model ----------")
-best_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)"""
+"""time_in_day['day'] = fuzz.trimf(time_in_day.universe,[0, 5, 12]) 
+time_in_day['night'] = fuzz.trimf(time_in_day.universe,[11, 16, 24]) """
+
+mean_lights['low'] = fuzz.trimf(mean_lights.universe,[min_light_avg, min_light_avg, 125])
+mean_lights['medium'] = fuzz.trimf(mean_lights.universe,[104, 162, 200])
+mean_lights['high'] = fuzz.trimf(mean_lights.universe,[180, max_light_avg, max_light_avg]) 
+
+CO2_deriv['decrease'] = fuzz.trimf(CO2_deriv.universe, [min_CO2, min_CO2, -5]) 
+CO2_deriv['constant'] = fuzz.trimf(CO2_deriv.universe, [-10, 0, 10])
+CO2_deriv['increase'] = fuzz.trimf(CO2_deriv.universe, [5, max_CO2, max_CO2])
+
+
+#Plots
+#time_in_day.view()
+mean_lights.view()
+CO2_deriv.view()
+plt.show()
+
+
+###### Output  #######
+
+Persons['LowerThanThree'] = fuzz.trimf(Persons.universe, [0,0,2])
+Persons['EqualToThree'] = fuzz.trimf(Persons.universe, [1, 3, 3])
+
+Persons.view()
+plt.show()
+
+"""*********************************** Rules ***************************************"""
+
+
+"""rule1 = ctrl.Rule(time_in_day['day'] & mean_lights['low'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule2 = ctrl.Rule(time_in_day['day'] & mean_lights['low'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule3 = ctrl.Rule(time_in_day['day'] & mean_lights['low'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule4 = ctrl.Rule(time_in_day['day'] & mean_lights['medium'] & CO2_deriv['decrease'], Persons['EqualToThree'])
+rule5 = ctrl.Rule(time_in_day['day'] & mean_lights['medium'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule6 = ctrl.Rule(time_in_day['day'] & mean_lights['medium'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule7 = ctrl.Rule(time_in_day['day'] & mean_lights['high'] & CO2_deriv['decrease'], Persons['EqualToThree'])
+rule8 = ctrl.Rule(time_in_day['day'] & mean_lights['high'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule9 = ctrl.Rule(time_in_day['day'] & mean_lights['high'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule10 = ctrl.Rule(time_in_day['night'] & mean_lights['low'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule11 = ctrl.Rule(time_in_day['night'] & mean_lights['low'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule12 = ctrl.Rule(time_in_day['night'] & mean_lights['low'] & CO2_deriv['increase'], Persons['LowerThanThree'])
+
+rule13 = ctrl.Rule(time_in_day['night'] & mean_lights['medium'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule14 = ctrl.Rule(time_in_day['night'] & mean_lights['medium'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule15 = ctrl.Rule(time_in_day['night'] & mean_lights['medium'] & CO2_deriv['increase'], Persons['LowerThanThree'])
+
+rule16 = ctrl.Rule(time_in_day['night'] & mean_lights['high'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule17 = ctrl.Rule(time_in_day['night'] & mean_lights['high'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule18 = ctrl.Rule(time_in_day['night'] & mean_lights['high'] & CO2_deriv['increase'], Persons['LowerThanThree'])"""
+
+rule1 = ctrl.Rule(mean_lights['low'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule2 = ctrl.Rule(mean_lights['low'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule3 = ctrl.Rule(mean_lights['low'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule4 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule5 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule6 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule7 = ctrl.Rule(mean_lights['high'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule8 = ctrl.Rule(mean_lights['high'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule9 = ctrl.Rule(mean_lights['high'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+"""*********************************** Inference Engine ***************************************"""
+
+# Control System
+persons_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, 
+                                   rule9])
+
+# Control System Simulation
+nr_persons_ctrl = ctrl.ControlSystemSimulation(persons_ctrl)
+
+"""*********************************** Defuzzifier ***************************************"""
+
+y_pred = np.array([])
+
+for i in range(len(x_test)):
+    nr_persons_ctrl.input['Lights_Avg'] = x_test[i,0]
+    nr_persons_ctrl.input['CO2_Var'] = x_test[i,1]
+    nr_persons_ctrl.compute()
+    y_pred = np.append(y_pred, math.ceil(nr_persons_ctrl.output['Persons']))
+    
+    
+        
+"""*********************************** Output ***************************************"""
+
+for i in range (len(y_pred)):
+    if y_pred[i] == 3:
+        y_pred[i] = 1
+    else:
+        y_pred[i] = 0
+        
+    if y_test[i] == 3:
+        y_test[i] = 1
+    else:
+        y_test[i] = 0
+
+
+Print_Scores_binary(y_pred,y_test)

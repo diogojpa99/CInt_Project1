@@ -335,6 +335,7 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
                                                     df.iloc[:,(len(df.columns)-1)].values,
                                                     test_size=0.1,shuffle=True)
 
+
 """*********** [Training data] Dealing with noise - Moving Average ***************"""
 
 # train_set = Clean_Noise(train_set)
