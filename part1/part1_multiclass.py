@@ -255,8 +255,8 @@ def simple_multiclass_model(X_train, Y_train, X_test, Y_test):
 def best_multiclass_model(X_train, Y_train, X_test, Y_test):
     
     mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
-                        solver = 'adam', alpha = 0.000101023, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.010214).fit(X_train,Y_train)
+                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
+                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
     
     # Save Model to be used in TestMe.py
     best_model_submission = 'Best_Multiclass_Model.sav'

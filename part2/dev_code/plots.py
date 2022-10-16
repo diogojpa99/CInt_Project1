@@ -321,6 +321,7 @@ df_fuzzy = Filling_data(df, outliers)
 
 ''' S1Temp Will Stay the same '''
 
+sns.set_theme(style="dark")
 '''sns.relplot(data = df, x = df['Time'],y = df['S1Temp'],hue="Persons")
 plt.show()'''
 
@@ -330,6 +331,9 @@ max_temp = max(df_fuzzy['S1Temp'])
 ####### CO2 Var #######
 
 ''' Variation between CO2 instances '''
+
+sns.relplot(data = df, x = df['Time'],y = df['CO2'],hue="Persons")
+plt.show()
 
 df_fuzzy['CO2'] = np.append(np.diff(df_fuzzy['CO2']),0)
 
@@ -349,6 +353,13 @@ min_light_avg = min(df_fuzzy['S1Light'])
 
 df_fuzzy.rename({'CO2': 'CO2_dev'}, axis=1, inplace=True)
 df_fuzzy.rename({'S1Light': 'light_avg'}, axis=1, inplace=True)
+
+'''sns.relplot(data = df, x = df['Time'],y = df['CO2_dev'],hue="Persons")
+plt.show()'''
+
+sns.relplot(data = df, x = df['Time'],y = df['light_avg'],hue="Persons")
+plt.show()
+
 df_fuzzy = df_fuzzy.drop(['Date','Time','S2Temp','S3Temp','S2Light','S3Light',
                           'PIR1', 'PIR2'], axis=1)
 

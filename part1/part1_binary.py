@@ -391,13 +391,15 @@ if sm == True:
 """**************************** Model Predicting ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
-print("--------- Simple_binary_model ----------")
-simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)
+'''print("--------- Simple_binary_model ----------")
+simple_binary_model(x_train_norm, y_train, x_test_norm, y_test)'''
+
 print("--------- best_binary_model ----------")
 best_binary_model(x_train_norm, y_train, x_test_norm, y_test)
-"""print("--------- binary_model_3 ----------")
+
+'''print("--------- binary_model_3 ----------")
 binary_model_3(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- binary_model_4 ----------")
 binary_model_4(x_train_norm, y_train, x_test_norm, y_test)
 print("--------- binary_model_5 ----------")
-binary_model_5(x_train_norm, y_train, x_test_norm, y_test)"""
+binary_model_5(x_train_norm, y_train, x_test_norm, y_test)'''
