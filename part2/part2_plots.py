@@ -125,7 +125,7 @@ def Filling_data(df, data):
 def Clean_Noise(df):
     
     for i in range (2,n_features-3):
-        df[df.columns[i]]= df[df.columns[i]].rolling(15).mean()
+        df[df.columns[i]]= df[df.columns[i]].rolling(185).mean()
 
     print(df.describe())
     plot_correlation(df)
@@ -239,7 +239,7 @@ def best_multiclass_model(X_train, Y_train, X_test, Y_test):
     Y_pred = mlp.predict(X_test)
     
     Plot_LossCurve(mlp)
-    Print_Scores_Multiclass(Y_pred,Y_test)
+    #Print_Scores_Multiclass(Y_pred,Y_test)
     Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
     
     return
@@ -295,13 +295,72 @@ df = Filling_data(df, outliers)
 
 df_fuzzy = Filling_data(df, outliers)
 
+
+#df = Clean_Noise(df)
+
 """**************************** Fuzzy - Define Variables ***********************************"""
 
-####### Time #######
+
+####### PIR ###### Crips variable...
+
+""" WE Use PIR because it has zero noise """
+
+df_fuzzy['PIR1'] = np.maximum( df_fuzzy['PIR1'] , df_fuzzy['PIR2'] ) #Maximum of the two PIR
+
+df_fuzzy['PIR1'] = df_fuzzy['PIR1'].rolling(250).sum() # Talvez mudar para 300 !!!!
+
+# Rolling sum of the PIR. 
+# Laboratory classes usualy can take from 1h30 till 3h 
+# By analysing the data 1h30 corresponds to aprox. 200 indexes
+
+df_fuzzy['PIR1'] = np.append(np.diff(df_fuzzy['PIR1']),0) #Computing the diference 
+
+'''sns.relplot(data = df, x = df['Time'],y = df['S1Temp'],hue="Persons")
+plt.show()'''
+
+
+
+####### PIR #######
+
+df_fuzzy['PIR1'] = np.maximum( df_fuzzy['PIR1'] , df_fuzzy['PIR2'] )
+
+df_fuzzy['PIR1'] = df_fuzzy['PIR1'].rolling(250).sum() #186 indexes correspondem a 1h30 período de uma aula 
+
+df_fuzzy['PIR1'] = np.append(np.diff(df_fuzzy['PIR1']),0)
+
+sns.relplot(data = df, x = df['Time'],y = df['PIR1'],hue="Persons")
+plt.show()
+
+
 
 ############################# URGENT ############################# 
 
 ####### CO2 #######
+
+"""for i in range(2,len(df.columns)-1):
+    
+    for j in range(len(df.index)):
+        
+        if df['Persons'][j] == 0:
+            plt.scatter(df.index[j], df[df.columns[i]][j], c = '#1f77b4', label = 'O')
+        elif df['Persons'][j] == 1:
+            plt.scatter(df.index[j], df[df.columns[i]][j], c = '#ff7f0e', label = '1')
+        elif df['Persons'][j] == 2:
+            plt.scatter(df.index[j], df[df.columns[i]][j], c = '#2ca02c', label = '2')
+        elif df['Persons'][j] == 3:
+            plt.scatter(df.index[j], df[df.columns[i]][j], c = '#d62728', label = '3')   
+            
+        j+=5
+    
+    print("-----------------",i, "----------------------")
+             
+    plt.legend(loc='upper right')
+    #plt.title(df[df.columns[i]])
+    plt.show()"""
+
+"""sns.relplot(data = df, x = df['Time'],y = df['CO2'],hue="Persons")
+plt.title("CO2")
+plt.show() """
 
 df_fuzzy['CO2'] = np.append(np.diff(df_fuzzy['CO2']),0)
 
@@ -312,9 +371,45 @@ plt.plot(df_fuzzy['CO2'])
 plt.title('CO2 Variation')
 plt.show()
     
+
+########## AVG Temp ############
+
+
+"""df_fuzzy['S1Temp'] = (df_fuzzy['S1Temp']+df_fuzzy['S2Temp']+df_fuzzy['S3Temp'])/3
+
+sns.relplot(data = df, x = df['Time'],y = df['S1Temp'],hue="Persons")
+plt.title("STemp Avg")
+plt.show()
+"""
+
+########## Temp var ############
+
+df_fuzzy['S1Temp'] = np.append(np.diff(df_fuzzy['S1Temp']),0)
+
+"""sns.relplot(data = df, x = df['Time'],y = df['S1Temp'],hue="Persons")
+plt.title("S1Temp Var")
+plt.show()"""
+
+
 ####### Light Avg #######
 
-df_fuzzy['S1Light'] = (df_fuzzy['S1Light']+df_fuzzy['S2Light']+df_fuzzy['S3Light'])/3
+"""sns.relplot(data = df, x = df['Time'],y = df['S1Light'],hue="Persons")
+plt.title("S1Light")
+plt.show()"""
+
+"""sns.relplot(data = df, x = df['Time'],y = df['S2Light'],hue="Persons")
+plt.title("S2Light")
+plt.show()"""
+
+
+#df_fuzzy['S1Light'] = (df_fuzzy['S1Light']+df_fuzzy['S2Light']+df_fuzzy['S3Light'])/3
+
+df_fuzzy['S1Light'] = np.append(np.diff(df_fuzzy['S1Light']),0)
+
+sns.relplot(data = df, x = df['Time'],y = df['S1Light'],hue="Persons")
+plt.title("SLights avg - Variation")
+plt.show()
+    
 
 max_light_avg = max(df_fuzzy['S1Light'])
 min_light_avg = min(df_fuzzy['S1Light'])
@@ -380,12 +475,12 @@ Persons = ctrl.Consequent(np.arange(0, 3+1, 1), 'Persons')
 """time_in_day['day'] = fuzz.trimf(time_in_day.universe,[0, 5, 12]) 
 time_in_day['night'] = fuzz.trimf(time_in_day.universe,[11, 16, 24]) """
 
-mean_lights['low'] = fuzz.trimf(mean_lights.universe,[min_light_avg, min_light_avg, 180])
-mean_lights['medium'] = fuzz.trimf(mean_lights.universe,[140, 190, 375])
-mean_lights['high'] = fuzz.trimf(mean_lights.universe,[350, max_light_avg, max_light_avg]) 
+mean_lights['low'] = fuzz.trimf(mean_lights.universe,[min_light_avg, min_light_avg, 125])
+mean_lights['medium'] = fuzz.trimf(mean_lights.universe,[104, 162, 200])
+mean_lights['high'] = fuzz.trimf(mean_lights.universe,[180, max_light_avg, max_light_avg]) 
 
 CO2_deriv['decrease'] = fuzz.trimf(CO2_deriv.universe, [min_CO2, min_CO2, -5]) 
-CO2_deriv['constant'] = fuzz.trimf(CO2_deriv.universe, [-10, 0, 15])
+CO2_deriv['constant'] = fuzz.trimf(CO2_deriv.universe, [-10, 0, 10])
 CO2_deriv['increase'] = fuzz.trimf(CO2_deriv.universe, [5, max_CO2, max_CO2])
 
 
@@ -406,12 +501,37 @@ plt.show()
 
 """*********************************** Rules ***************************************"""
 
+
+"""rule1 = ctrl.Rule(time_in_day['day'] & mean_lights['low'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule2 = ctrl.Rule(time_in_day['day'] & mean_lights['low'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule3 = ctrl.Rule(time_in_day['day'] & mean_lights['low'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule4 = ctrl.Rule(time_in_day['day'] & mean_lights['medium'] & CO2_deriv['decrease'], Persons['EqualToThree'])
+rule5 = ctrl.Rule(time_in_day['day'] & mean_lights['medium'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule6 = ctrl.Rule(time_in_day['day'] & mean_lights['medium'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule7 = ctrl.Rule(time_in_day['day'] & mean_lights['high'] & CO2_deriv['decrease'], Persons['EqualToThree'])
+rule8 = ctrl.Rule(time_in_day['day'] & mean_lights['high'] & CO2_deriv['constant'], Persons['EqualToThree'])
+rule9 = ctrl.Rule(time_in_day['day'] & mean_lights['high'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule10 = ctrl.Rule(time_in_day['night'] & mean_lights['low'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule11 = ctrl.Rule(time_in_day['night'] & mean_lights['low'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule12 = ctrl.Rule(time_in_day['night'] & mean_lights['low'] & CO2_deriv['increase'], Persons['LowerThanThree'])
+
+rule13 = ctrl.Rule(time_in_day['night'] & mean_lights['medium'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule14 = ctrl.Rule(time_in_day['night'] & mean_lights['medium'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule15 = ctrl.Rule(time_in_day['night'] & mean_lights['medium'] & CO2_deriv['increase'], Persons['LowerThanThree'])
+
+rule16 = ctrl.Rule(time_in_day['night'] & mean_lights['high'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule17 = ctrl.Rule(time_in_day['night'] & mean_lights['high'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule18 = ctrl.Rule(time_in_day['night'] & mean_lights['high'] & CO2_deriv['increase'], Persons['LowerThanThree'])"""
+
 rule1 = ctrl.Rule(mean_lights['low'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
-rule2 = ctrl.Rule(mean_lights['low'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule2 = ctrl.Rule(mean_lights['low'] & CO2_deriv['constant'], Persons['EqualToThree'])
 rule3 = ctrl.Rule(mean_lights['low'] & CO2_deriv['increase'], Persons['EqualToThree'])
 
 rule4 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
-rule5 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule5 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['constant'], Persons['EqualToThree'])
 rule6 = ctrl.Rule(mean_lights['medium'] & CO2_deriv['increase'], Persons['EqualToThree'])
 
 rule7 = ctrl.Rule(mean_lights['high'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
