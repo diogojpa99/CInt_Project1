@@ -224,26 +224,6 @@ def model_FineTuning(X_train, Y_train, sm ):
 
     return
 
-# Best multiclass model if number of features = 9 
-# According to model()
-def best_multiclass_model(X_train, Y_train, X_test, Y_test):
-    
-    mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
-                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
-    
-    # Save Model to be used in TestMe.py
-    best_model_submission = 'Best_Multiclass_Model.sav'
-    pickle.dump(mlp, open(best_model_submission, 'wb'))
-    
-    Y_pred = mlp.predict(X_test)
-    
-    Plot_LossCurve(mlp)
-    Print_Scores_Multiclass(Y_pred,Y_test)
-    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
-    
-    return
-
 #Plotonfusion Matrix
 def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
     
@@ -297,9 +277,15 @@ df_fuzzy = Filling_data(df, outliers)
 
 """**************************** Fuzzy - Define Variables ***********************************"""
 
-####### Time #######
+####### S1Temp #######
 
-############################# URGENT ############################# 
+''' Não vamos alterar a S1Temp'''
+
+'''sns.relplot(data = df, x = df['Time'],y = df['S1Temp'],hue="Persons")
+plt.show()'''
+
+min_temp = min(df_fuzzy['S1Temp'])
+max_temp = max(df_fuzzy['S1Temp'])
 
 ####### CO2 #######
 
@@ -308,9 +294,6 @@ df_fuzzy['CO2'] = np.append(np.diff(df_fuzzy['CO2']),0)
 max_CO2 = max(df_fuzzy['CO2'])
 min_CO2 = min(df_fuzzy['CO2'])
 
-plt.plot(df_fuzzy['CO2'])
-plt.title('CO2 Variation')
-plt.show()
     
 ####### Light Avg #######
 
@@ -327,9 +310,7 @@ plt.show()
 
 df_fuzzy.rename({'CO2': 'CO2_dev'}, axis=1, inplace=True)
 df_fuzzy.rename({'S1Light': 'light_avg'}, axis=1, inplace=True)
-"""df_fuzzy = df_fuzzy.drop(['Date','S1Temp','S2Temp','S3Temp','S2Light','S3Light',
-                          'PIR1', 'PIR2'], axis=1)"""
-df_fuzzy = df_fuzzy.drop(['Date','Time', 'S1Temp','S2Temp','S3Temp','S2Light','S3Light',
+df_fuzzy = df_fuzzy.drop(['Date','Time','S2Temp','S3Temp','S2Light','S3Light',
                           'PIR1', 'PIR2'], axis=1)
 
 
@@ -338,7 +319,6 @@ df_fuzzy = df_fuzzy.drop(['Date','Time', 'S1Temp','S2Temp','S3Temp','S2Light','S
 x_train, x_test, y_train, y_test = train_test_split(df_fuzzy.iloc[:,:(len(df_fuzzy.columns)-1)].values, 
                                                     df_fuzzy.iloc[:,(len(df_fuzzy.columns)-1)].values,
                                                     test_size=0.1,shuffle=True)
-
 
 
 """*********** [Training data] Dealing with noise - Moving Average ***************"""
@@ -364,7 +344,7 @@ x_train, x_test, y_train, y_test = train_test_split(df_fuzzy.iloc[:,:(len(df_fuz
 
 """**************************** Fuzzy System Inputs ***********************************"""
 
-#time_in_day = ctrl.Antecedent(np.arange(0, 24+1, 1), 'Time') 
+temp = ctrl.Antecedent(np.arange(min_temp, max_temp+1, 0.001), 'Temp') 
 mean_lights = ctrl.Antecedent(np.arange(min_light_avg, max_light_avg+1, 1), 'Lights_Avg')
 CO2_deriv = ctrl.Antecedent(np.arange(min_CO2, max_CO2+1, 1), 'CO2_Var')
 
@@ -377,12 +357,12 @@ Persons = ctrl.Consequent(np.arange(0, 3+1, 1), 'Persons')
 
 ###### Input ########
 
-"""time_in_day['day'] = fuzz.trimf(time_in_day.universe,[0, 5, 12]) 
-time_in_day['night'] = fuzz.trimf(time_in_day.universe,[11, 16, 24]) """
+temp['cold'] = fuzz.trimf(temp.universe,[min_temp, min_temp ,20.5])
+temp['hot'] = fuzz.trimf(temp.universe,[20.1, 21 , max_temp])
 
 mean_lights['low'] = fuzz.trimf(mean_lights.universe,[min_light_avg, min_light_avg, 180])
 mean_lights['medium'] = fuzz.trimf(mean_lights.universe,[140, 190, 375])
-mean_lights['high'] = fuzz.trimf(mean_lights.universe,[350, max_light_avg, max_light_avg]) 
+mean_lights['high'] = fuzz.trimf(mean_lights.universe,[345, max_light_avg, max_light_avg]) 
 
 CO2_deriv['decrease'] = fuzz.trimf(CO2_deriv.universe, [min_CO2, min_CO2, -5]) 
 CO2_deriv['constant'] = fuzz.trimf(CO2_deriv.universe, [-10, 0, 15])
@@ -390,7 +370,7 @@ CO2_deriv['increase'] = fuzz.trimf(CO2_deriv.universe, [5, max_CO2, max_CO2])
 
 
 #Plots
-#time_in_day.view()
+temp.view()
 mean_lights.view()
 CO2_deriv.view()
 plt.show()
@@ -418,11 +398,27 @@ rule7 = ctrl.Rule(mean_lights['high'] & CO2_deriv['decrease'], Persons['LowerTha
 rule8 = ctrl.Rule(mean_lights['high'] & CO2_deriv['constant'], Persons['EqualToThree'])
 rule9 = ctrl.Rule(mean_lights['high'] & CO2_deriv['increase'], Persons['EqualToThree'])
 
+rule10 = ctrl.Rule(temp['cold'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule11= ctrl.Rule(temp['cold'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule12 = ctrl.Rule(temp['cold'] & CO2_deriv['increase'], Persons['LowerThanThree'])
+
+rule13 = ctrl.Rule(temp['hot'] & CO2_deriv['decrease'], Persons['LowerThanThree'])
+rule14 = ctrl.Rule(temp['hot'] & CO2_deriv['constant'], Persons['LowerThanThree'])
+rule15 = ctrl.Rule(temp['hot'] & CO2_deriv['increase'], Persons['EqualToThree'])
+
+rule16 = ctrl.Rule(temp['cold'] & mean_lights['low'], Persons['LowerThanThree'])
+rule17 = ctrl.Rule(temp['cold'] & mean_lights['medium'], Persons['LowerThanThree'])
+rule18 = ctrl.Rule(temp['cold'] & mean_lights['high'], Persons['EqualToThree'])
+
+rule19 = ctrl.Rule(temp['hot'] & mean_lights['low'], Persons['LowerThanThree'])
+rule20 = ctrl.Rule(temp['hot'] & mean_lights['medium'], Persons['LowerThanThree'])
+rule21 = ctrl.Rule(temp['hot'] & mean_lights['high'], Persons['EqualToThree'])
+
 """*********************************** Inference Engine ***************************************"""
 
 # Control System
 persons_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, 
-                                   rule9])
+                                   rule9,rule10,rule11,rule15,rule16,rule17,rule18,rule20,rule21])
 
 # Control System Simulation
 nr_persons_ctrl = ctrl.ControlSystemSimulation(persons_ctrl)
@@ -430,12 +426,22 @@ nr_persons_ctrl = ctrl.ControlSystemSimulation(persons_ctrl)
 """*********************************** Defuzzifier ***************************************"""
 
 y_pred = np.array([])
+y_pred_train = np.array([])
 
 for i in range(len(x_test)):
-    nr_persons_ctrl.input['Lights_Avg'] = x_test[i,0]
-    nr_persons_ctrl.input['CO2_Var'] = x_test[i,1]
+    nr_persons_ctrl.input['Temp'] = x_test[i,0]
+    nr_persons_ctrl.input['Lights_Avg'] = x_test[i,1]
+    nr_persons_ctrl.input['CO2_Var'] = x_test[i,2]
     nr_persons_ctrl.compute()
     y_pred = np.append(y_pred, math.ceil(nr_persons_ctrl.output['Persons']))
+    
+for i in range(len(x_train)):
+    nr_persons_ctrl.input['Temp'] = x_train[i,0]
+    nr_persons_ctrl.input['Lights_Avg'] = x_train[i,1]
+    nr_persons_ctrl.input['CO2_Var'] = x_train[i,2]
+    nr_persons_ctrl.compute()
+    y_pred_train = np.append(y_pred_train, math.ceil(nr_persons_ctrl.output['Persons']))
+    
     
     
         
@@ -451,6 +457,19 @@ for i in range (len(y_pred)):
         y_test[i] = 1
     else:
         y_test[i] = 0
+        
+for i in range (len(y_pred_train)):
+    if y_train[i] == 3:
+        y_train[i] = 1
+    else:
+        y_train[i] = 0
+        
+
+    if y_pred_train[i] == 3:
+        y_pred_train[i] = 1
+    else:
+        y_pred_train[i] = 0
 
 
 Print_Scores_binary(y_pred,y_test)
+Print_Scores_binary(y_pred_train,y_train)

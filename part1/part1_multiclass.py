@@ -8,14 +8,10 @@ from sklearn.preprocessing import MinMaxScaler
 from imblearn.pipeline import Pipeline as imbpipeline
 from sklearn.pipeline import Pipeline
 from sklearn.neural_network import MLPClassifier
-import sklearn.metrics as met
 from sklearn.metrics import precision_score, recall_score,f1_score, balanced_accuracy_score, accuracy_score
 from scipy.stats import pearsonr
-from sklearn.metrics import plot_confusion_matrix
-from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 import pickle
-
-
 
 """*********************************  Initializations() ************************************"""
 
@@ -146,13 +142,21 @@ def Normalize_data(data, train_set):
     
     return scaler.transform(data)
 
-def Save_Max_Min(df_train):
+#Save x_train max-min for TestMe.py
+def Save_Max_Min(x_train):
     
-    df_norm = {'S1Temp':[1,0],'S2Temp':[1,0],'S3Temp':[1,0],
-               'S1Light':[1,0],'S2Light':[1,0],'S3Light':[1,0],
-               'CO2':[1,0],'PIR1':[1,0],'PIR2':[1,0]}
+    max_min = np.zeros([2,7-2]) #PIRs Sensors do not normalize
     
-    
+    # S1Temp | S2Temp | S1Light | S2Light | S3Light 
+    # min -----------------------------------------
+    # max -----------------------------------------
+
+    for i in range(7-2):
+        max_min[0][i] = min(x_train[:,i])
+        max_min[1][i] = max(x_train[:,i])
+        
+    np.save('X_Train_MaxMin.npy', max_min)
+
     return
 
 #Balance Data with SMOTE method
@@ -180,6 +184,7 @@ def Feature_Selection(df):
         df.pop(s)
         
     #print('Data after feature selection:', df.columns)
+    
                 
     return df
 
@@ -250,8 +255,8 @@ def simple_multiclass_model(X_train, Y_train, X_test, Y_test):
 def best_multiclass_model(X_train, Y_train, X_test, Y_test):
     
     mlp = MLPClassifier(hidden_layer_sizes=(12,12), activation='tanh',
-                        solver = 'adam', alpha = 0.0001, learning_rate='constant', 
-                        max_iter = 400, learning_rate_init = 0.01).fit(X_train,Y_train)
+                        solver = 'adam', alpha = 0.000101023, learning_rate='constant', 
+                        max_iter = 400, learning_rate_init = 0.010214).fit(X_train,Y_train)
     
     # Save Model to be used in TestMe.py
     best_model_submission = 'Best_Multiclass_Model.sav'
@@ -261,18 +266,28 @@ def best_multiclass_model(X_train, Y_train, X_test, Y_test):
     
     Plot_LossCurve(mlp)
     Print_Scores_Multiclass(Y_pred,Y_test)
-    Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
-    
+    Plot_ConfusionMatrix_multiclass(Y_test, Y_pred)
+        
     return
 
 #Plotonfusion Matrix
-def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
+def Plot_ConfusionMatrix_multiclass(test_y, pred_y):
     
-    fig = plot_confusion_matrix(mlp, test_x, test_y, display_labels=mlp.classes_)
-    fig.figure_.suptitle("Confusion Matrix")
+    
+    cf_matrix = confusion_matrix(test_y, pred_y)
+    
+    ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
+
+    ax.set_title('Seaborn Confusion Matrix with labels\n\n');
+    ax.set_xlabel('\nPredicted Values')
+    ax.set_ylabel('Actual Values ');
+
+    ## Ticket labels - List must be in alphabetical order
+    ax.xaxis.set_ticklabels(['0','1','2','3'])
+    ax.yaxis.set_ticklabels(['0','1','2','3'])
+
+    ## Display the visualization of the Confusion Matrix.
     plt.show()
-    
-    print(classification_report(test_y, pred_y))
     
     return
 
@@ -322,9 +337,6 @@ df = Filling_data(df, outliers)
 
 df = df.drop(['Date', 'Time'], axis=1)
 
-"""********************* Save Max and Min of each feature ************************"""
-
-
 """************************* Feature Selection ******************************"""
 
 df = Feature_Selection(df)
@@ -335,6 +347,10 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
                                                     df.iloc[:,(len(df.columns)-1)].values,
                                                     test_size=0.1,shuffle=True)
 
+
+"""********************* Save Max and Min of each feature ************************"""
+
+Save_Max_Min(x_train)
 
 """*********** [Training data] Dealing with noise - Moving Average ***************"""
 
@@ -359,7 +375,7 @@ if sm == True:
 """**************************** Models ***********************************"""
 
 #Simple model to test Feature Selection, Balance techniques, etc.
-print("--------- Simple_multiclass_model ----------")
-simple_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)
-#print("--------- best_multiclass_model ----------")
-#best_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)
+"""print("--------- Simple_multiclass_model ----------")
+simple_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)"""
+print("--------- best_multiclass_model ----------")
+best_multiclass_model(x_train_norm, y_train, x_test_norm, y_test)

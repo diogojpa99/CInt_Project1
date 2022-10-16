@@ -1,21 +1,19 @@
 #!/usr/bin/python
 
 import sys
+from hamcrest import none
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from imblearn.over_sampling import SMOTE 
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import precision_score, recall_score,f1_score, balanced_accuracy_score, accuracy_score
-from scipy.stats import pearsonr
-from sklearn.metrics import plot_confusion_matrix
-from sklearn.metrics import classification_report
 import pickle
-
+from sklearn.metrics import confusion_matrix
 
 
 """*********************************  Initializations() ************************************"""
+
+####### Read .csv from arguments #########
 
 if len(sys.argv) < 2:
     print(" ----- Error: arguments should follow the following setup ----- ")
@@ -26,9 +24,15 @@ elif sys.argv[1][int(len(sys.argv[1])-4):int(len(sys.argv[1]))] != '.csv':
         print("(python) TestMe.py xxx.csv")
 else:
     df = pd.read_csv(sys.argv[1])
-        
-#sns.set_theme(style="darkgrid")
 
+
+####### Import Max-Min values #########
+
+x_train_max_min = np.load("X_Train_MaxMin.npy")
+
+
+######## Init Variables #######
+ 
 n_features = len(df.columns) ## Number of features
 missing_data = [(-1,'Feature')] #We will not count the first position
 outliers =  [(-1,'Feature')] 
@@ -36,58 +40,6 @@ outliers =  [(-1,'Feature')]
 sm = True #SMOTE
 
 """*********************************  Functions() ************************************"""
-
-# Plot - Observe the data
-def plot_data(df):
-        
-    plt.ion()
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-        
-    for i in range(2, len(df.columns)):
-        
-        fig.suptitle(df.columns[i])
-        ax1.plot(df[df.columns[i]])
-        ax2.hist(df[df.columns[i]]) # Histograms give more information about outliers  
-        ax2.set_title('Histogram')      
-        plt.show()
-        plt.pause(4)
-        ax1.cla()
-        ax2.cla()
-    
-    fig.clf()
-    plt.close()
-    return
-
-# Observe if there is correlation between different features 
-def plot_correlation(df):
-    
-    #Using Pearson Correlation
-    plt.figure(figsize=(n_features,n_features))
-    cor = df.corr()
-    sns.heatmap(cor, annot=True, cmap=plt.cm.Reds)
-    plt.show()
-    plt.close()
-
-    print('Please insert the index of the first feature:')
-    feature_1 = int(input())
-    print('Please insert the index of the second feature:')
-    feature_2 = int(input())
-    
-    sns.relplot(data = df, x = df.columns[feature_1],y = df.columns[feature_2],hue="Persons")
-    plt.title("Correlation between two Features")
-    plt.show()
-
-  
-    return
-
-#Important plots for the report
-def plot_information(df):
-    
-    sns.set_theme(style="ticks")
-    sns.pairplot(df, hue="Persons")
-    plt.show()
-
-    return
 
 #Returns an array with a vector of the shape:(missing_data_index, Feature)
 def missing_data_detector(data_column, missing_data,feature): 
@@ -138,85 +90,62 @@ def Clean_Noise(df):
         df[df.columns[i]]= df[df.columns[i]].rolling(15).mean()
 
     print(df.describe())
-    plot_correlation(df)
-    plot_data(df)
-    
+
     return df 
 
 #Normalize data with min-max of the training set
-def Normalize_data(data, train_set):
+def Normalize_test_set(x_test, max_min):
     
-    scaler = MinMaxScaler()
-    scaler.fit(train_set) #Normalize to the min-max of the training set
-
-    return scaler.transform(data)
-
-#Balance Data with SMOTE method
-def Balance_data(x_train, y_train):
+    x_test_norm = x_test
+       
+    for i in range(7-2):
+        x_test_norm[:,i] = (x_test[:,i] - max_min[0][i])/(max_min[1][i] - max_min[0][i])
     
-    sm = SMOTE(random_state = 11)
-    return sm.fit_resample(x_train,y_train)
+    return x_test_norm
 
 #Feature Selection
 # If two features have a pearson correlation coefficient bigger than 85 remove one of them
 def Feature_Selection(df):
     
-    selected_features = ['Features']
-    
-    for f in df:
-        for d in df:
-            corr, _ = pearsonr(df[f],df[d])
-            if ( (corr > 0.85) and (d != f) and (d != df.columns[0])): #Do not remove first feature
-                if d not in selected_features:
-                    selected_features.append(d)
-                
-    selected_features.pop(0)
-    
-    for s in selected_features:
-        df.pop(s)
-        
-    #print('Data after feature selection:', df.columns)
+    df = df.drop(['S3Temp','CO2'], axis=1)
                 
     return df
 
 #Print scores
 def Print_Scores_Multiclass(Y_pred,Y_test):
     
-    print('Multiclass - Accuracy:', accuracy_score(Y_pred,Y_test))
-    print('Multiclass - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
+    print('Multiclass - Labeles:\t["0"\t"1"\t\t"2"\t\t"3"]')
+    print('Multiclass - Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average=None))
+    print('Multiclass - Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average=None))
+    print('Multiclass - f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average=None))
     
-    print('Multiclass - micro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    print('Multiclass - micro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    print('Multiclass - micro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='micro'))
-    
-    print('Multiclass - macro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
-    print('Multiclass - macro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
-    print('Multiclass - macro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    print('Multiclass - Macro Precision:', precision_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    print('Multiclass - Macro Recall:', recall_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
+    print('Multiclass - Macro f1-score:', f1_score(Y_pred,Y_test, labels=[0,1,2,3], average='macro'))
     
     return
 
 #Plotonfusion Matrix
-def Plot_ConfusionMatrix(mlp, test_x, test_y, pred_y):
+def Plot_ConfusionMatrix_multiclass(test_y, pred_y):
     
-    fig = plot_confusion_matrix(mlp, test_x, test_y, display_labels=mlp.classes_)
-    fig.figure_.suptitle("Confusion Matrix")
+    
+    cf_matrix = confusion_matrix(test_y, pred_y)
+    
+    ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
+
+    ax.set_title('Seaborn Confusion Matrix with labels\n\n');
+    ax.set_xlabel('\nPredicted Values')
+    ax.set_ylabel('Actual Values ');
+
+    ## Ticket labels - List must be in alphabetical order
+    ax.xaxis.set_ticklabels(['0','1','2','3'])
+    ax.yaxis.set_ticklabels(['0','1','2','3'])
+
+    ## Display the visualization of the Confusion Matrix.
     plt.show()
-    
-    print(classification_report(test_y, pred_y))
     
     return
 
-#Plot Loss Curve
-def Plot_LossCurve(mlp):
-    
-    plt.plot(mlp.loss_curve_)
-    plt.title("Loss Curve", fontsize=14)
-    plt.xlabel('Iterations')
-    plt.ylabel('Cost')
-    plt.show()
-    plt.close()
-    
-    return
     
 """*********************************  main() ************************************"""
 
@@ -244,10 +173,6 @@ outliers.pop(0)
 
 df = Filling_data(df, outliers)
 
-"""*********************  Vizualize Data  *************************"""
-
-#plot_correlation(df)
-
 """********************* Droping 'DATA' and 'Time' Columns **********************"""
 
 df = df.drop(['Date', 'Time'], axis=1)
@@ -256,16 +181,20 @@ df = df.drop(['Date', 'Time'], axis=1)
 
 df = Feature_Selection(df)
 
-"""************************** Tain-Test Split *********************************"""
+"""************************** X-Y Split *********************************"""
 
-data = df.to_numpy()
-y_real = data[:,-1]
-x_rea3 = data[:,0:-1]
+y = df['Persons']
+df = df.drop(['Persons'], axis = 1)
+
+x = df
+
+y_real = y.to_numpy()
+x_real = x.to_numpy()
 
 """********************* Normalize the Test Set *************************"""
 
-x_test_norm = Normalize_data(x_test, x_train)
-    
+x_test_norm = Normalize_test_set(x_real, x_train_max_min)
+
 """**************************** Upload Multiclass Model ***********************************"""
 
 loaded_mlp = pickle.load(open('Best_Multiclass_Model.sav', 'rb'))
@@ -273,4 +202,9 @@ loaded_mlp = pickle.load(open('Best_Multiclass_Model.sav', 'rb'))
 """**************************** predict ***********************************"""
 
 print("------------- Multiclass Model Output ----------------")
-mlp_clf = multiclass_model()
+y_pred =loaded_mlp.predict(x_test_norm)
+
+"""**************************** Output ***********************************"""
+
+Print_Scores_Multiclass(y_pred,y_real)
+Plot_ConfusionMatrix_multiclass(y_real, y_pred)
