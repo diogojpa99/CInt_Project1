@@ -347,7 +347,6 @@ x_train, x_test, y_train, y_test = train_test_split(df.iloc[:,:(len(df.columns)-
                                                     df.iloc[:,(len(df.columns)-1)].values,
                                                     test_size=0.1,shuffle=True)
 
-
 """********************* Save Max and Min of each feature ************************"""
 
 Save_Max_Min(x_train)
