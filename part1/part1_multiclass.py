@@ -188,7 +188,8 @@ def Feature_Selection(df):
                 
     return df
 
-#Print scoresKNeighborsClassifierclass(Y_pred,Y_test):
+#Print scores
+def Print_Scores_Multiclass(Y_pred,Y_test):
     
     print('Multiclass - Accuracy:', accuracy_score(Y_pred,Y_test))
     print('Multiclass - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
