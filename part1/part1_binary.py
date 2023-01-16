@@ -13,6 +13,8 @@ from sklearn.metrics import precision_score, recall_score,f1_score, balanced_acc
 from scipy.stats import pearsonr
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
 
 
 
@@ -247,6 +249,7 @@ def best_binary_model(X_train, Y_train, X_test, Y_test):
     Plot_LossCurve(mlp)
     Print_Scores_binary(Y_pred,Y_test)
     Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
+    Plot_ConfusionMatrix_multiclass(Y_test, Y_pred)
     
     return
 
@@ -292,6 +295,27 @@ def binary_model_5(X_train, Y_train, X_test, Y_test):
     Print_Scores_binary(Y_pred,Y_test)
     Plot_ConfusionMatrix(mlp, X_test, Y_test, Y_pred)
 
+    return
+
+#Plotonfusion Matrix
+def Plot_ConfusionMatrix_multiclass(test_y, pred_y):
+    
+    
+    cf_matrix = confusion_matrix(test_y, pred_y)
+    
+    ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
+
+    ax.set_title('Seaborn Confusion Matrix with labels\n\n');
+    ax.set_xlabel('\nPredicted Values')
+    ax.set_ylabel('Actual Values ');
+
+    ## Ticket labels - List must be in alphabetical order
+    ax.xaxis.set_ticklabels(['0','1'])
+    ax.yaxis.set_ticklabels(['0','1'])
+
+    ## Display the visualization of the Confusion Matrix.
+    plt.show()
+    
     return
 
 #Plot Confusion Matrix
