@@ -181,7 +181,7 @@ def Print_Scores_binary(Y_pred,Y_test):
     print('binary - Accuracy:', accuracy_score(Y_pred,Y_test))
     print('binary - Balanced Accuracy:', balanced_accuracy_score(Y_pred,Y_test))
     
-    print('binary - Precision:', precision_score(Y_pred,Y_test, average='binary'))
+    print('binary - Precision:', precision_score(Y_pred,Y_test, average='binary'        ))
     print('binary - Recall:', recall_score(Y_pred,Y_test, average='binary'))
     print('binary - f1-score:', f1_score(Y_pred,Y_test, average='binary'))
     
